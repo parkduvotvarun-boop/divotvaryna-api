@@ -12,7 +12,8 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: "Only POST requests allowed" });
     }
 
-    const { prompt } = req.body;
+    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+const { prompt } = body || {};
 
     const response = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
