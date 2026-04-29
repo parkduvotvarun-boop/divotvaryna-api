@@ -37,9 +37,8 @@ const { prompt } = body || {};
 
     const imageBase64 = data.data?.[0]?.b64_json;
 
-    return res.status(200).json({
-      image: `data:image/png;base64,${imageBase64}`,
-    });
+    return res.setHeader("Content-Type", "image/png");
+res.status(200).send(Buffer.from(imageBase64, "base64"));
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
