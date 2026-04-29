@@ -5,6 +5,7 @@ export default async function handler(req, res) {
     }
 
     const { prompt } = req.body;
+    
 
     const response = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
