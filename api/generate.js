@@ -1,19 +1,15 @@
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
   try {
-    if (req.method !== "POST") {
-      return res.status(405).json({ error: "Only POST requests allowed" });
-    }
+    let prompt = "Cute unicorn child drawing"
 
-    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-const { prompt } = body || {};
+    if (req.method === "GET") {
+      prompt = req.query.prompt || prompt
+    } else if (req.method === "POST") {
+      const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body
+      prompt = body?.prompt || prompt
+    } else {
+      return res.status(405).json({ error: "Only GET or POST allowed" })
+    }
 
     const response = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
@@ -23,23 +19,23 @@ const { prompt } = body || {};
       },
       body: JSON.stringify({
         model: "gpt-image-1",
-        prompt: prompt || "Cute child drawing style animal",
+        prompt,
         size: "auto",
         quality: "low",
       }),
-    });
+    })
 
-    const data = await response.json();
+    const data = await response.json()
 
     if (!response.ok) {
-      return res.status(response.status).json(data);
+      return res.status(response.status).json(data)
     }
 
-    const imageBase64 = data.data?.[0]?.b64_json;
+    const imageBase64 = data.data[0].b64_json
 
-    return res.setHeader("Content-Type", "image/png");
-res.status(200).send(Buffer.from(imageBase64, "base64"));
+    res.setHeader("Content-Type", "image/png")
+    return res.status(200).send(Buffer.from(imageBase64, "base64"))
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message })
   }
 }
