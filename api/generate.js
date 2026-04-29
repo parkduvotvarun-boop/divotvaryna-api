@@ -1,11 +1,18 @@
 export default async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   try {
     if (req.method !== "POST") {
       return res.status(405).json({ error: "Only POST requests allowed" });
     }
 
     const { prompt } = req.body;
-    
 
     const response = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
@@ -17,19 +24,22 @@ export default async function handler(req, res) {
         model: "gpt-image-1",
         prompt: prompt || "Cute child drawing style animal",
         size: "auto",
-        quality: "low"
+        quality: "low",
       }),
     });
 
     const data = await response.json();
 
-    const imageBase64 = data.data[0].b64_json;
+    if (!response.ok) {
+      return res.status(response.status).json(data);
+    }
 
-    res.status(200).json({
-      image: `data:image/png;base64,${imageBase64}`
+    const imageBase64 = data.data?.[0]?.b64_json;
+
+    return res.status(200).json({
+      image: `data:image/png;base64,${imageBase64}`,
     });
-
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 }
