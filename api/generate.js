@@ -6,7 +6,10 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") {
     return res.status(200).end()
   }
-
+if (req.method === "GET") {
+  res.setHeader("Access-Control-Allow-Origin", "*")
+  return res.status(200).json({ ok: true, message: "API works" })
+}
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Only POST requests allowed" })
   }
