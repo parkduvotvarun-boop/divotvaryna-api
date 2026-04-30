@@ -24,13 +24,7 @@ if (req.method === "GET") {
       return res.status(400).json({ error: "Missing uploaded image" })
     }
 
-    const prompt = `
-Transform the uploaded child's drawing into a whimsical magical creature illustration.
-
-Keep the main idea, silhouette, and important shapes from the original drawing.
-Make it soft, friendly, cute, polished, and high-quality.
-Style: warm children's book illustration, pastel colors, soft pencil texture, clean white background.
-Do not make it scary. Do not add text. Keep it simple and charming.
+    const prompt = `Using the provided child’s drawing as inspiration (not a direct copy), create a whimsical fantasy character that feels like a high-quality animated movie hero. Reimagine the shapes, colors, and ideas from the drawing into a cohesive, polished character design with expressive features and a magical, friendly personality. The character should look like it belongs in a modern animated film, with soft forms, appealing proportions, and a charming, storybook-like style. Render it as a clean, high-quality image on a pure white background, centered, with minimal or very soft shadow. No additional elements. Focus on clarity, smooth lighting, and a professional character design while preserving the imagination and spirit of the child’s drawing.
 
 Extra instruction from user: ${userPrompt}
 `
