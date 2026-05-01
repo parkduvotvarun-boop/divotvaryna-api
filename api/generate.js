@@ -19,47 +19,39 @@ export default async function handler(req, res) {
 
     const { image, childName, email } = body || {}
 
-    if (!image)
-      return res.status(400).json({ error: "Missing uploaded image" })
-    if (!childName)
-      return res.status(400).json({ error: "Missing child name" })
-    if (!email)
-      return res.status(400).json({ error: "Missing email" })
+    if (!image) return res.status(400).json({ error: "No image" })
+    if (!childName) return res.status(400).json({ error: "No name" })
+    if (!email) return res.status(400).json({ error: "No email" })
 
     const normalizedEmail = email.trim().toLowerCase()
     const redisKey = `generated:${normalizedEmail}`
 
-    // 🔒 CHECK IF EMAIL USED
-    const checkResponse = await fetch(
-      `${process.env.UPSTASH_REDIS_REST_URL}/get/${redisKey}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
-        },
-      }
-    )
+    // 🔥 FIX URL (на випадок лапок)
+    const redisUrl = process.env.UPSTASH_REDIS_REST_URL
+      ?.trim()
+      .replace(/^"|"$/g, "")
+
+    const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN
+      ?.trim()
+      .replace(/^"|"$/g, "")
+
+    // 🔒 CHECK EMAIL
+    const checkResponse = await fetch(`${redisUrl}/get/${redisKey}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${redisToken}`,
+      },
+    })
 
     const checkData = await checkResponse.json()
 
     if (checkData.result === "true") {
       return res.status(409).json({
-        error: "Цей email вже використав генерацію",
+        error: "Цей email вже використав генерацію 💫",
       })
     }
 
     // 🎨 GENERATE IMAGE
-    const prompt = `
-Create a cute whimsical 3D fantasy character based on a child's drawing.
-
-Style:
-- Pixar / Disney style
-- Soft lighting
-- Rounded shapes
-- Friendly face
-- White background
-`
-
     const imageResponse = await fetch(
       "https://api.openai.com/v1/images/edits",
       {
@@ -70,10 +62,10 @@ Style:
         },
         body: JSON.stringify({
           model: "gpt-image-1",
-          prompt,
+          prompt:
+            "Create a cute 3D fantasy character based on a child drawing. Pixar style, white background.",
           images: [{ image_url: image }],
           size: "auto",
-          quality: "low",
         }),
       }
     )
@@ -88,7 +80,7 @@ Style:
 
     if (!imageBase64) {
       return res.status(500).json({
-        error: "No image returned",
+        error: "Image generation failed",
       })
     }
 
@@ -103,10 +95,7 @@ Style:
         from: "Парк Дивотварин <onboarding@resend.dev>",
         to: [normalizedEmail],
         subject: "Твоя Дивотварина ✨",
-        html: `
-          <h2>Привіт, ${childName}!</h2>
-          <p>Твоя Дивотварина готова 🐾</p>
-        `,
+        html: `<h2>Привіт, ${childName}!</h2><p>Твоя Дивотварина готова 🐾</p>`,
         attachments: [
           {
             filename: "dyvotvaryna.png",
@@ -122,16 +111,13 @@ Style:
       return res.status(emailResponse.status).json(emailData)
     }
 
-    // 💾 SAVE EMAIL AS USED
-    await fetch(
-      `${process.env.UPSTASH_REDIS_REST_URL}/set/${redisKey}/true`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
-        },
-      }
-    )
+    // 💾 SAVE EMAIL
+    await fetch(`${redisUrl}/set/${redisKey}/true`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${redisToken}`,
+      },
+    })
 
     return res.status(200).json({
       ok: true,
