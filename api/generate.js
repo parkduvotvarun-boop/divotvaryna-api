@@ -166,7 +166,18 @@ Render:
         Authorization: `Bearer ${redisToken}`,
       },
     })
-
+body: JSON.stringify({
+  from: "Парк Дивотварин <hello@parkdyvotvaryn.com>",
+  to: [normalizedEmail],
+  subject: "Твоя Дивотварина вже народилася ✨",
+  html: emailHtml,
+  attachments: [
+    {
+      filename: "dyvotvaryna.png",
+      content: imageBase64,
+    },
+  ],
+}),
     const saveData = await saveResponse.json()
 
     if (!saveResponse.ok || saveData.error) {
