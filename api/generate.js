@@ -3,46 +3,49 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
   res.setHeader("Access-Control-Allow-Headers", "Content-Type")
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end()
-  }
+  if (req.method === "OPTIONS") return res.status(200).end()
 
   if (req.method === "GET") {
-    return res.status(200).json({
-      ok: true,
-      message: "API works",
-    })
+    return res.status(200).json({ ok: true, message: "API works" })
   }
 
   if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "Only POST requests allowed",
-    })
+    return res.status(405).json({ error: "Only POST requests allowed" })
   }
 
   try {
-    const body =
-      typeof req.body === "string" ? JSON.parse(req.body) : req.body
+    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body
 
     if (body?.test === true) {
-      return res.status(200).json({
-        ok: true,
-        message: "POST works",
-      })
+      return res.status(200).json({ ok: true, message: "POST works" })
     }
 
     const { image, childName, email } = body || {}
 
-    if (!image) {
-      return res.status(400).json({ error: "Missing uploaded image" })
-    }
+    if (!image) return res.status(400).json({ error: "Missing uploaded image" })
+    if (!childName) return res.status(400).json({ error: "Missing child name" })
+    if (!email) return res.status(400).json({ error: "Missing email" })
 
-    if (!childName) {
-      return res.status(400).json({ error: "Missing child name" })
-    }
+    const normalizedEmail = email.trim().toLowerCase()
+    const redisKey = `generated:${normalizedEmail}`
 
-    if (!email) {
-      return res.status(400).json({ error: "Missing email" })
+    // 1. Check if this email already generated an image
+    const checkResponse = await fetch(
+      `${process.env.UPSTASH_REDIS_REST_URL}/get/${encodeURIComponent(redisKey)}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
+        },
+      }
+    )
+
+    const checkData = await checkResponse.json()
+
+    if (checkData.result) {
+      return res.status(409).json({
+        error: "Цей email вже використав генерацію",
+      })
     }
 
     const prompt = `
@@ -70,28 +73,21 @@ Render:
 - no extra objects
 `
 
-    const imageResponse = await fetch(
-      "https://api.openai.com/v1/images/edits",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-image-1",
-          prompt,
-          images: [
-            {
-              image_url: image,
-            },
-          ],
-          size: "auto",
-          quality: "low",
-          output_format: "png",
-        }),
-      }
-    )
+    const imageResponse = await fetch("https://api.openai.com/v1/images/edits", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-image-1",
+        prompt,
+        images: [{ image_url: image }],
+        size: "auto",
+        quality: "low",
+        output_format: "png",
+      }),
+    })
 
     const imageData = await imageResponse.json()
 
@@ -146,7 +142,7 @@ Render:
       },
       body: JSON.stringify({
         from: "Парк Дивотварин <onboarding@resend.dev>",
-        to: [email],
+        to: [normalizedEmail],
         subject: "Твоя Дивотварина вже народилася ✨",
         html: emailHtml,
         attachments: [
@@ -163,6 +159,17 @@ Render:
     if (!emailResponse.ok) {
       return res.status(emailResponse.status).json(emailData)
     }
+
+    // 2. Save email as used ONLY after successful email send
+    await fetch(
+      `${process.env.UPSTASH_REDIS_REST_URL}/set/${encodeURIComponent(redisKey)}/true`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
+        },
+      }
+    )
 
     return res.status(200).json({
       ok: true,
