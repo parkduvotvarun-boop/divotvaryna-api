@@ -1,48 +1,97 @@
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*")
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS")
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
   res.setHeader("Access-Control-Allow-Headers", "Content-Type")
 
-  if (req.method === "OPTIONS") return res.status(200).end()
-  if (req.method === "GET") return res.status(200).json({ ok: true, message: "API works" })
-  if (req.method !== "POST") return res.status(405).json({ error: "Only POST requests allowed" })
+  if (req.method === "OPTIONS") {
+    return res.status(200).end()
+  }
+
+  if (req.method === "GET") {
+    return res.status(200).json({
+      ok: true,
+      message: "API works",
+    })
+  }
+
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      error: "Only POST requests allowed",
+    })
+  }
 
   try {
-    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body
-    const { image, childName, email } = body ||
-    if (body?.test === true) {
-  return res.status(200).json({
-    ok: true,
-    message: "POST from Framer works"
-  })
-}
-    {}
+    const body =
+      typeof req.body === "string" ? JSON.parse(req.body) : req.body
 
-    if (!image) return res.status(400).json({ error: "Missing uploaded image" })
-    if (!childName) return res.status(400).json({ error: "Missing child name" })
-    if (!email) return res.status(400).json({ error: "Missing email" })
+    if (body?.test === true) {
+      return res.status(200).json({
+        ok: true,
+        message: "POST works",
+      })
+    }
+
+    const { image, childName, email } = body || {}
+
+    if (!image) {
+      return res.status(400).json({ error: "Missing uploaded image" })
+    }
+
+    if (!childName) {
+      return res.status(400).json({ error: "Missing child name" })
+    }
+
+    if (!email) {
+      return res.status(400).json({ error: "Missing email" })
+    }
 
     const prompt = `
-Using the provided child’s drawing as inspiration (not a direct copy), create a whimsical fantasy character that feels like a high-quality animated movie hero.
+Using the provided child’s drawing as inspiration, create a whimsical fantasy character that feels like a high-quality animated movie hero.
+
 Reimagine the shapes, colors, and ideas from the drawing into a cohesive, polished character design with expressive features and a magical, friendly personality.
 
+The character should look like a modern 3D animated mascot, with smooth clean rendering, soft lighting, and slightly glossy toy-like materials.
+
+Design details:
+- big expressive eyes
+- rounded soft shapes
+- appealing proportions
+- cute friendly expression
+- vibrant playful colors
+
+Keep the main idea and recognizable silhouette from the original drawing.
+
+Render:
+- high-quality 3D character
+- centered composition
+- pure white background
+- minimal soft shadow
+- no text
+- no extra objects
 `
 
-    const imageResponse = await fetch("https://api.openai.com/v1/images/edits", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-image-1",
-        prompt,
-        images: [{ image_url: image }],
-        size: "auto",
-        quality: "low",
-        output_format: "png",
-      }),
-    })
+    const imageResponse = await fetch(
+      "https://api.openai.com/v1/images/edits",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-image-1",
+          prompt,
+          images: [
+            {
+              image_url: image,
+            },
+          ],
+          size: "auto",
+          quality: "low",
+          output_format: "png",
+        }),
+      }
+    )
 
     const imageData = await imageResponse.json()
 
@@ -53,10 +102,13 @@ Reimagine the shapes, colors, and ideas from the drawing into a cohesive, polish
     const imageBase64 = imageData.data?.[0]?.b64_json
 
     if (!imageBase64) {
-      return res.status(500).json({ error: "No image returned" })
+      return res.status(500).json({
+        error: "No image returned from OpenAI",
+      })
     }
 
-    const HEADER_IMAGE_URL = "https://framerusercontent.com/images/OyIOx97mExAaOlDIALevV7bls.jpg?scale-down-to=1024&width=1200&height=300"
+    const HEADER_IMAGE_URL =
+      "https://framerusercontent.com/images/OyIOx97mExAaOlDIALevV7bls.jpg?scale-down-to=1024&width=1200&height=300"
 
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; color:#004912; max-width:680px; margin:0 auto;">
@@ -117,6 +169,8 @@ Reimagine the shapes, colors, and ideas from the drawing into a cohesive, polish
       message: "Email sent",
     })
   } catch (error) {
-    return res.status(500).json({ error: error.message })
+    return res.status(500).json({
+      error: error.message || "Unknown server error",
+    })
   }
 }
