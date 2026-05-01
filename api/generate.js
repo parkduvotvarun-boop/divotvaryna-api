@@ -140,18 +140,7 @@ Render:
         Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-       from: "Парк Дивотварин <hello@parkdyvotvaryn.com>",
-        to: [normalizedEmail],
-        subject: "Твоя Дивотварина вже народилася ✨",
-        html: emailHtml,
-        attachments: [
-          {
-            filename: "dyvotvaryna.png",
-            content: imageBase64,
-          },
-        ],
-      }),
+      
     })
 
     const emailData = await emailResponse.json()
