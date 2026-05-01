@@ -9,7 +9,14 @@ export default async function handler(req, res) {
 
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body
-    const { image, childName, email } = body || {}
+    const { image, childName, email } = body ||
+    if (body?.test === true) {
+  return res.status(200).json({
+    ok: true,
+    message: "POST from Framer works"
+  })
+}
+    {}
 
     if (!image) return res.status(400).json({ error: "Missing uploaded image" })
     if (!childName) return res.status(400).json({ error: "Missing child name" })
