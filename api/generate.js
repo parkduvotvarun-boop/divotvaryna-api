@@ -49,7 +49,7 @@ Reimagine the shapes, colors, and ideas from the drawing into a cohesive, polish
       return res.status(500).json({ error: "No image returned" })
     }
 
-    const HEADER_IMAGE_URL = "https://YOUR-HEADER-IMAGE-URL-HERE.jpg"
+    const HEADER_IMAGE_URL = "https://framerusercontent.com/images/OyIOx97mExAaOlDIALevV7bls.jpg?scale-down-to=1024&width=1200&height=300"
 
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; color:#004912; max-width:680px; margin:0 auto;">
