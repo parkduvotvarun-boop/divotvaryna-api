@@ -5,7 +5,6 @@ module.exports = async function handler(req, res) {
 
   if (req.method === "OPTIONS") return res.status(200).end()
 
-  
   if (req.method === "GET") {
     return res.status(200).json({ ok: true, message: "API works" })
   }
@@ -25,13 +24,8 @@ module.exports = async function handler(req, res) {
     const normalizedEmail = email.trim().toLowerCase()
     const redisKey = `generated:${normalizedEmail}`
 
-    const redisUrl = process.env.UPSTASH_REDIS_REST_URL
-      ?.trim()
-      .replace(/^"|"$/g, "")
-
-    const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN
-      ?.trim()
-      .replace(/^"|"$/g, "")
+    const redisUrl = process.env.UPSTASH_REDIS_REST_URL?.trim().replace(/^"|"$/g, "")
+    const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN?.trim().replace(/^"|"$/g, "")
 
     const checkResponse = await fetch(`${redisUrl}/get/${redisKey}`, {
       method: "GET",
@@ -54,15 +48,6 @@ Using the provided child’s drawing as inspiration, create a whimsical fantasy 
 Reimagine the shapes, colors, and ideas from the drawing into a cohesive, polished character design with expressive features and a magical, friendly personality.
 
 The character should look like a modern 3D animated mascot, with smooth clean rendering, soft lighting, and slightly glossy toy-like materials.
-
-Design details:
-- big expressive eyes
-- rounded soft shapes
-- appealing proportions
-- cute friendly expression
-- vibrant playful colors
-
-Keep the main idea and recognizable silhouette from the original drawing.
 
 Render:
 - high-quality 3D character
@@ -140,7 +125,18 @@ Render:
         Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
-      
+      body: JSON.stringify({
+        from: "Парк Дивотварин <hello@parkdyvotvaryn.com>",
+        to: [normalizedEmail],
+        subject: "Твоя Дивотварина вже народилася ✨",
+        html: emailHtml,
+        attachments: [
+          {
+            filename: "dyvotvaryna.png",
+            content: imageBase64,
+          },
+        ],
+      }),
     })
 
     const emailData = await emailResponse.json()
@@ -155,18 +151,7 @@ Render:
         Authorization: `Bearer ${redisToken}`,
       },
     })
-body: JSON.stringify({
-  from: "Парк Дивотварин <hello@parkdyvotvaryn.com>",
-  to: [normalizedEmail],
-  subject: "Твоя Дивотварина вже народилася ✨",
-  html: emailHtml,
-  attachments: [
-    {
-      filename: "dyvotvaryna.png",
-      content: imageBase64,
-    },
-  ],
-}),
+
     const saveData = await saveResponse.json()
 
     if (!saveResponse.ok || saveData.error) {
