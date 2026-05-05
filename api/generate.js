@@ -135,7 +135,7 @@ Render:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Парк Дивотварин <parkduvotvarun@gmail.com>",
+        from: "Парк Дивотварин <hello@parkdyvotvaryn.com>",
         to: [normalizedEmail],
         subject: "Твоя Дивотварина вже народилася ✨",
         html: emailHtml,
