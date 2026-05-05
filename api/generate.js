@@ -104,7 +104,16 @@ Render:
         <h3 style="color:#004912;">Що далі?</h3>
 
         <p>Збережи її собі — вона любить бути поруч.</p>
+
         <p>Поділись у соцмережах і покажи світові свою фантазію.</p>
+
+<p>
+  А ще — надішли нам малюнок своєї Дивотварини на пошту 
+  <a href="mailto:parkduvotvarun@gmail.com" style="color:#FE6C3A; font-weight:bold;">
+    parkduvotvarun@gmail.com
+  </a>.
+  Можливо, саме вона з’явиться у реальному житті ✨
+</p>
         <p>А ще приходь у Парк Дивотварин у своєму місті і познайомся з іншими мешканцями наживо.</p>
 
         <p>Це диво стало можливим завдяки нашому генеральному партнеру — <strong>Кернел</strong>.</p>
@@ -126,7 +135,7 @@ Render:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Парк Дивотварин <hello@parkdyvotvaryn.com>",
+        from: "Парк Дивотварин <parkduvotvarun@gmail.com>",
         to: [normalizedEmail],
         subject: "Твоя Дивотварина вже народилася ✨",
         html: emailHtml,
