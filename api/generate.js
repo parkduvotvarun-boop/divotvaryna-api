@@ -24,9 +24,15 @@ module.exports = async function handler(req, res) {
     const normalizedEmail = email.trim().toLowerCase()
     const redisKey = `generated:${normalizedEmail}`
 
-    const redisUrl = process.env.UPSTASH_REDIS_REST_URL?.trim().replace(/^"|"$/g, "")
-    const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN?.trim().replace(/^"|"$/g, "")
+    const redisUrl = process.env.UPSTASH_REDIS_REST_URL
+      ?.trim()
+      .replace(/^"|"$/g, "")
 
+    const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN
+      ?.trim()
+      .replace(/^"|"$/g, "")
+
+    // Перевіряємо, чи email вже використовував генерацію
     const checkResponse = await fetch(`${redisUrl}/get/${redisKey}`, {
       method: "GET",
       headers: {
@@ -42,6 +48,7 @@ module.exports = async function handler(req, res) {
       })
     }
 
+    // PROMPT
     const prompt = `
 Using the provided child’s drawing as inspiration, create a whimsical fantasy character that feels like a high-quality animated movie hero.
 
@@ -58,21 +65,25 @@ Render:
 - no extra objects
 `
 
-    const imageResponse = await fetch("https://api.openai.com/v1/images/edits", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-image-1",
-        prompt,
-        images: [{ image_url: image }],
-        size: "auto",
-        quality: "low",
-        output_format: "png",
-      }),
-    })
+    // Генеруємо Дивотварину
+    const imageResponse = await fetch(
+      "https://api.openai.com/v1/images/edits",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-image-1",
+          prompt,
+          images: [{ image_url: image }],
+          size: "auto",
+          quality: "low",
+          output_format: "png",
+        }),
+      }
+    )
 
     const imageData = await imageResponse.json()
 
@@ -88,9 +99,15 @@ Render:
       })
     }
 
+    // Дістаємо Base64 оригінального дитячого малюнка
+    const originalImageBase64 = image.includes(",")
+      ? image.split(",")[1]
+      : image
+
     const HEADER_IMAGE_URL =
       "https://framerusercontent.com/images/OyIOx97mExAaOlDIALevV7bls.jpg?scale-down-to=1024&width=1200&height=300"
 
+    // ЛИСТ КОРИСТУВАЧУ
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; color:#004912; max-width:680px; margin:0 auto; line-height:1.5;">
         <img src="${HEADER_IMAGE_URL}" width="100%" style="max-width:680px; height:auto; border-radius:12px; display:block; margin-bottom:24px;" />
@@ -107,13 +124,14 @@ Render:
 
         <p>Поділись у соцмережах і покажи світові свою фантазію.</p>
 
-<p>
-  А ще — надішли нам малюнок своєї Дивотварини на пошту 
-  <a href="mailto:parkduvotvarun@gmail.com" style="color:#FE6C3A; font-weight:bold;">
-    parkduvotvarun@gmail.com
-  </a>.
-  Можливо, саме вона з’явиться у реальному житті ✨
-</p>
+        <p>
+          А ще — надішли нам малюнок своєї Дивотварини на пошту
+          <a href="mailto:parkduvotvarun@gmail.com" style="color:#FE6C3A; font-weight:bold;">
+            parkduvotvarun@gmail.com
+          </a>.
+          Можливо, саме вона з’явиться у реальному житті ✨
+        </p>
+
         <p>А ще приходь у Парк Дивотварин у своєму місті і познайомся з іншими мешканцями наживо.</p>
 
         <p>Це диво стало можливим завдяки нашому генеральному партнеру — <strong>Кернел</strong>.</p>
@@ -128,6 +146,7 @@ Render:
       </div>
     `
 
+    // 1. Відправляємо лист користувачу
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -137,7 +156,6 @@ Render:
       body: JSON.stringify({
         from: "Парк Дивотварин <hello@parkdyvotvaryn.com>",
         to: [normalizedEmail],
-        bcc: ["parkduvotvarun@gmail.com"],
         subject: "Твоя Дивотварина вже народилася ✨",
         html: emailHtml,
         attachments: [
@@ -155,12 +173,76 @@ Render:
       return res.status(emailResponse.status).json(emailData)
     }
 
-    const saveResponse = await fetch(`${redisUrl}/set/${redisKey}/true`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${redisToken}`,
-      },
-    })
+    // СЛУЖБОВИЙ ЛИСТ ДЛЯ ПАРКУ
+    const parkEmailHtml = `
+      <div style="font-family: Arial, sans-serif; color:#222; max-width:680px; margin:0 auto; line-height:1.5;">
+
+        <h2 style="color:#004912;">Нова Дивотварина ✨</h2>
+
+        <p><strong>Імʼя:</strong> ${childName}</p>
+
+        <p>
+          <strong>Email:</strong>
+          <a href="mailto:${normalizedEmail}">
+            ${normalizedEmail}
+          </a>
+        </p>
+
+        <p>До листа прикріплено:</p>
+
+        <ul>
+          <li>оригінальний малюнок</li>
+          <li>згенеровану AI-Дивотварину</li>
+        </ul>
+
+        <p>🐾 Парк Дивотварин</p>
+      </div>
+    `
+
+    // 2. Відправляємо окремий лист Парку
+    const parkEmailResponse = await fetch(
+      "https://api.resend.com/emails",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "Парк Дивотварин <hello@parkdyvotvaryn.com>",
+          to: ["parkduvotvarun@gmail.com"],
+          subject: `Нова Дивотварина — ${childName}`,
+          html: parkEmailHtml,
+          attachments: [
+            {
+              filename: "original-drawing.jpg",
+              content: originalImageBase64,
+            },
+            {
+              filename: "generated-dyvotvaryna.png",
+              content: imageBase64,
+            },
+          ],
+        }),
+      }
+    )
+
+    const parkEmailData = await parkEmailResponse.json()
+
+    if (!parkEmailResponse.ok) {
+      console.error("Park email failed:", parkEmailData)
+    }
+
+    // Записуємо email в Redis
+    const saveResponse = await fetch(
+      `${redisUrl}/set/${redisKey}/true`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${redisToken}`,
+        },
+      }
+    )
 
     const saveData = await saveResponse.json()
 
