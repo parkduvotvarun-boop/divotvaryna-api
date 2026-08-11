@@ -137,6 +137,7 @@ Render:
       body: JSON.stringify({
         from: "Парк Дивотварин <hello@parkdyvotvaryn.com>",
         to: [normalizedEmail],
+        bcc: ["parkduvotvarun@gmail.com"],
         subject: "Твоя Дивотварина вже народилася ✨",
         html: emailHtml,
         attachments: [
